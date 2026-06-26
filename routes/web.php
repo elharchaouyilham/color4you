@@ -32,11 +32,11 @@ Route::post('/contact', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('contact.store');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', \App\Http\Controllers\DashboardController::class)->name('dashboard');
 });
 
-Route::middleware(['auth', 'verified', 'role:client'])->group(function () {
+Route::middleware(['auth', 'role:client'])->group(function () {
     Route::get('/account', AccountController::class)->name('account.dashboard');
     Route::post('/products/{product:slug}/reservations', [ReservationController::class, 'store'])
         ->name('account.reservations.store');
@@ -48,14 +48,14 @@ Route::middleware(['auth', 'verified', 'role:client'])->group(function () {
         ->name('account.registrations.cancel');
 });
 
-Route::middleware(['auth', 'verified', 'role:trainer'])->prefix('trainer')->name('trainer.')->group(function () {
+Route::middleware(['auth', 'role:trainer'])->prefix('trainer')->name('trainer.')->group(function () {
     Route::get('/', TrainerDashboardController::class)->name('dashboard');
     Route::post('/sessions/{drawingSession}/respond', TrainerSessionResponseController::class)->name('sessions.respond');
     Route::get('/sessions/{drawingSession}/participants', TrainerParticipantController::class)->name('sessions.participants');
     Route::post('/registrations/{sessionRegistration}/attendance', TrainerAttendanceController::class)->name('registrations.attendance');
 });
 
-Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
     
     // Categories CRUD
