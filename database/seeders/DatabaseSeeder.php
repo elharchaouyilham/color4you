@@ -2,39 +2,48 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\Categorie;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        $this->call([
-            RolePermissionSeeder::class,
-            CategorySeeder::class,
-            TrainerProfileSeeder::class,
-            ProductSeeder::class,
-            DrawingSessionSeeder::class,
-            ClientAndBookingSeeder::class,
-        ]);
+        // 1. Create Roles and store them in variables
+        $adminRole = Role::create(['name' => 'Administrateur']);
+        $formateurRole = Role::create(['name' => 'Formateur']);
+        Role::create(['name' => 'Client']);
 
-        $admin = User::query()->firstOrCreate([
-            'email' => env('ADMIN_EMAIL', 'admin@artt.test'),
-        ], [
-            'first_name' => env('ADMIN_FIRST_NAME', 'Admin'),
-            'last_name' => env('ADMIN_LAST_NAME', 'User'),
-            'phone' => env('ADMIN_PHONE'),
-            'password' => Hash::make(env('ADMIN_PASSWORD', 'password')),
-            'email_verified_at' => now(),
+        // 2. Create the Admin User
+        $admin = User::create([
+            'nom' => 'Elharchaouy',
+            'prenom' => 'Ilham',
+            'email' => 'admin@color4y.com',
+            'telephone' => '0600000000',
+            'password' => bcrypt('password'),
+            'status' => 'actif'
         ]);
+        
+        // Native Laravel way to assign a relationship using the pivot table
+        $admin->roles()->attach($adminRole->id);
 
-        $admin->syncRoles(['admin']);
+        // 3. Create the Formateur User
+        $formateur = User::create([
+            'nom' => 'Da Vinci',
+            'prenom' => 'Leonardo',
+            'email' => 'formateur@color4y.com',
+            'password' => bcrypt('password'),
+            'status' => 'actif'
+        ]);
+        
+        // Native Laravel way to assign a relationship using the pivot table
+        $formateur->roles()->attach($formateurRole->id);
+
+        // 4. Create Categories
+        Categorie::create(['name' => 'Livres d’Art']);
+        Categorie::create(['name' => 'Tableaux']);
+        Categorie::create(['name' => 'Matériel de Peinture']);
     }
 }

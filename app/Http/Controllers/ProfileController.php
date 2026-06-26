@@ -2,62 +2,50 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
-use Inertia\Response;
+use App\Models\Reservation;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): Response
+    private function checkStatus()
     {
-        return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
-        ]);
+        if (Auth::user()->status === 'banni') {
+            Auth::logout();
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
+            abort(403, 'Compte suspendu.');
+        }
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function show()
     {
-        $request->user()->fill($request->validated());
+        $this->checkStatus();
+        return view('profile.show');
+    }
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+    public function update(Request $request)
+    {
+        $this->checkStatus();
+        $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'telephone' => 'nullable|string',
+        ]);
+
+        Auth::user()->update($request->only('nom', 'prenom', 'telephone'));
+        return back()->with('success', 'Profil mis à jour.');
+    }
+
+    public function clientDashboard()
+    {
+        $this->checkStatus();
+        if (!Auth::user()->hasRole('Client')) {
+            abort(403, 'Accès réservé aux clients.');
         }
 
-        $request->user()->save();
-
-        return Redirect::route('profile.edit');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        $reservations = Reservation::where('user_id', Auth::id())->with('products')->get();
+        $inscriptions = Auth::user()->inscriptions;
+        return view('client.dashboard', compact('reservations', 'inscriptions'));
     }
 }

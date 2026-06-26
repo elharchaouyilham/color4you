@@ -7,6 +7,7 @@ use App\Models\SessionRegistration;
 use App\Policies\ReservationPolicy;
 use App\Policies\SessionRegistrationPolicy;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,7 +25,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::policy(Reservation::class, ReservationPolicy::class);
-        Gate::policy(SessionRegistration::class, SessionRegistrationPolicy::class);
+        Schema::defaultStringLength(120);
     }
 }

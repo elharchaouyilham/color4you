@@ -2,51 +2,34 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable, SoftDeletes;
+    use Notifiable;
 
-    /**
-     * @var list<string>
-     */
-    protected $fillable = [
-        'first_name',
-        'last_name',
-        'email',
-        'phone',
-        'password',
-    ];
+    protected $fillable = ['nom', 'prenom', 'email', 'telephone', 'password', 'status'];
+    protected $hidden = ['password', 'remember_token'];
 
-    /**
-     * @var list<string>
-     */
-    protected $appends = [
-        'name',
-    ];
-
-    /**
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    public function trainerProfile(): HasOne
+    public function roles(): BelongsToMany
     {
-        return $this->hasOne(TrainerProfile::class);
+        return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::where('name', $roleName)->first();
+        if ($role) {
+            $this->roles()->syncWithoutDetaching([$role->id]);
+        }
     }
 
     public function reservations(): HasMany
@@ -54,56 +37,15 @@ class User extends Authenticatable
         return $this->hasMany(Reservation::class);
     }
 
-    public function sessionRegistrations(): HasMany
+    public function seanceDessins(): HasMany
     {
-        return $this->hasMany(SessionRegistration::class);
+        return $this->hasMany(SeanceDessin::class, 'formateur_id');
     }
 
-    public function isAdmin(): bool
+    public function inscriptions(): BelongsToMany
     {
-        return $this->hasRole('admin');
-    }
-
-    public function isTrainer(): bool
-    {
-        return $this->hasRole('trainer');
-    }
-
-    public function isClient(): bool
-    {
-        return $this->hasRole('client');
-    }
-
-    public function scopeTrainers($query)
-    {
-        return $query->role('trainer');
-    }
-
-    public function scopeClients($query)
-    {
-        return $query->role('client');
-    }
-
-    public function fullName(): string
-    {
-        return trim($this->first_name.' '.$this->last_name);
-    }
-
-    protected function name(): Attribute
-    {
-        return Attribute::make(get: fn () => $this->fullName());
-    }
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsToMany(SeanceDessin::class, 'inscription_seance')
+                    ->withPivot('present')
+                    ->withTimestamps();
     }
 }
